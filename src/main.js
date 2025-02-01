@@ -4,6 +4,8 @@ import { fetchImages } from "./js/pixabay-api.js";
 import { renderGallery, totalHits } from "./js/render-functions.js";
 import SimpleLightbox from "simplelightbox";
 import "simplelightbox/dist/simple-lightbox.min.css";
+import axios from "axios";
+
 
 const form = document.querySelector("form");
 const gallery = document.querySelector(".gallery");
@@ -14,11 +16,11 @@ let page = 1;
 let lightbox;
 
 
-function main() {
-    form.addEventListener("submit", (e) => {
+ function main() {
+    form.addEventListener("submit", async (e) => {
         e.preventDefault();
         //! loading span
-        gallery.insertAdjacentHTML("beforebegin", "<span class='loader'></span>") 
+        fetchBtn.insertAdjacentHTML("beforebegin", "<span class='loader'></span>") 
        
 
         const formData = new FormData(e.target);
@@ -38,32 +40,31 @@ function main() {
 
         form.reset();
         page = 1; 
-        fetchImages(currentQuery, page)
-            .then((data) => {
+        try {
+            const images = await fetchImages(currentQuery, page)
+             gallery.innerHTML = "";
+            renderGallery(images);
+            initializeLightbox();
+            checkFetchButton();
+        }
+        catch (err){
+            console.error("Error:", err);
                 gallery.innerHTML = "";
-                renderGallery(data);
-                initializeLightbox();
-                checkFetchButton();
-                
-            })
-            .catch((err) => {
-                console.error("Error:", err);
-                gallery.innerHTML = "";
-            });
+        }
     });
 
-    fetchBtn.addEventListener("click", () => {
+    fetchBtn.addEventListener("click",async () => {
         page += 1;
-        fetchImages(currentQuery, page)
-            .then((data) => {
-                renderGallery(data);
-                initializeLightbox();
-                checkFetchButton();
-                 scrollPage() //! scroll
-            })
-            .catch((e) => {
-                console.error("Error:", e);
-            });
+        try {
+            const newImages = await fetchImages(currentQuery, page)
+            renderGallery(newImages);
+            initializeLightbox();
+            checkFetchButton();
+            scrollPage()
+        }
+        catch (err) {
+             console.error("Error:", e);
+        }
     });
 }
 
@@ -73,6 +74,7 @@ function scrollPage() {
 
     if (imageCard) {
         const cardHeight = imageCard.getBoundingClientRect().height;
+        
         window.scrollBy({
             top: cardHeight * 2,
             behavior: "smooth"
